@@ -478,3 +478,6 @@ $RECYCLE.BIN/
 
 # Rider config files
 .idea/
+
+# VSCode config files
+.vscode/
