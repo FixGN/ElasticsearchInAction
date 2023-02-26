@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ElasticsearchInAction.Api", "ElasticsearchInAction.Api\ElasticsearchInAction.Api.csproj", "{4A3ED95B-4A52-4244-91FA-1BE7D462C2D9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ElasticsearchInAction.Repositories.Elasticsearch", "ElasticsearchInAction.Repositories.Elasticsearch\ElasticsearchInAction.Repositories.Elasticsearch.csproj", "{D75954A7-FED0-4BCA-8641-FD1FAA756026}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4A3ED95B-4A52-4244-91FA-1BE7D462C2D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A3ED95B-4A52-4244-91FA-1BE7D462C2D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A3ED95B-4A52-4244-91FA-1BE7D462C2D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A3ED95B-4A52-4244-91FA-1BE7D462C2D9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D75954A7-FED0-4BCA-8641-FD1FAA756026}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D75954A7-FED0-4BCA-8641-FD1FAA756026}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D75954A7-FED0-4BCA-8641-FD1FAA756026}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D75954A7-FED0-4BCA-8641-FD1FAA756026}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
