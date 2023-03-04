@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.Configure<ElasticOptions>(
-    builder.Configuration.GetSection(ElasticOptions.OptionsName));
+builder.Configuration.GetSection(ElasticOptions.OptionsName));
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

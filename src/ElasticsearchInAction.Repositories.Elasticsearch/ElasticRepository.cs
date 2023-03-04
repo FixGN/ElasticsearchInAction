@@ -1,9 +1,13 @@
 ﻿using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
+using Elastic.Transport;
 using ElasticsearchInAction.Api.Repositories;
 using ElasticsearchInAction.Repositories.Elasticsearch.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
+using ElasticsearchInAction.Repositories.Elasticsearch.Converters;
+using ElasticsearchInAction.Repositories.Elasticsearch.Models.Query;
 
 namespace ElasticsearchInAction.Repositories.Elasticsearch;
 
@@ -12,6 +16,17 @@ public class ElasticRepository : IElasticRepository
 
     private readonly ILogger<IElasticRepository> _logger;
     private readonly ElasticsearchClient _client;
+
+    private readonly JsonSerializerOptions _serializerOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+        Converters =
+                {
+                    new QueryTypeJsonConverter(),
+                    new RangeQueryJsonConverter<double?>()
+                }
+    };
 
     public ElasticRepository(IOptions<ElasticOptions> options, ILogger<IElasticRepository> logger)
     {
@@ -145,28 +160,49 @@ public class ElasticRepository : IElasticRepository
         throw new InvalidOperationException("Something was wrong.");
     }
 
-    public async Task<BookResponse[]> Search(string[] fieldsList, string query, CancellationToken cancellationToken = default)
+    public async Task<BookResponse[]> Search(
+        double? minimumRating,
+        double? maximumRating,
+        CancellationToken cancellationToken = default)
     {
-        ArgumentException.ThrowIfNullOrEmpty(query);
-
-        var response = await _client.SearchAsync<Book>(
-            req =>
-                req.Query(q => q.MultiMatch(
-                    match =>
-                    {
-                        match.Fields(fieldsList);
-                        match.Query(query);
-                        match.Operator(Operator.And);
-                    })), 
-            cancellationToken);
-        
-        if (response is not null && response.IsSuccess())
+        if (minimumRating == null && maximumRating == null)
         {
-            _logger.LogInformation(
-                "Get all documents of {AuthorName}. Received {DocumentsCount} documents",
-                query,
-                response.Documents.Count);
-            return response.Hits.Select(x =>
+            throw new ArgumentException("One of params mustn't be null");
+        }
+
+        var rangeParameters = new RangeQueryParameter<double?>();
+        
+        if (minimumRating != null)
+        {
+            rangeParameters.Gt = minimumRating.Value;
+        }
+        if (maximumRating != null)
+        {
+            rangeParameters.Lt = maximumRating.Value;
+        }
+
+        var query = new QueryContainer
+        {
+            Query = new RangeQuery<double?>
+            {
+                FieldName = nameof(Book.AmazonRating),
+                RangeParams = rangeParameters
+            }
+        };
+
+        // TODO: See NEST
+        var serializedQuery = JsonSerializer.Serialize(query, _serializerOptions);
+
+        var result = await _client.Transport.RequestAsync<SearchResponse<Book>>(
+            Elastic.Transport.HttpMethod.GET,
+            $"{_client.ElasticsearchClientSettings.DefaultIndex}/_search",
+            PostData.String(serializedQuery),
+            cancellationToken: cancellationToken);
+
+        if (result.ApiCallDetails.HasSuccessfulStatusCode)
+        {
+            return result.Hits
+                .Select(x =>
                     new BookResponse
                     {
                         Id = x.Id,
@@ -176,7 +212,6 @@ public class ElasticRepository : IElasticRepository
                 .ToArray();
         }
         
-        // It must never be executed, because IndexAsync throw exception if something goes wrong
         throw new InvalidOperationException("Something was wrong.");
     }
 
@@ -340,6 +375,41 @@ public class ElasticRepository : IElasticRepository
         throw new InvalidOperationException("Something was wrong.");
     }
 
+    public async Task<BookResponse[]> SearchInFields(string[] fieldsList, string query, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(query);
+
+        var response = await _client.SearchAsync<Book>(
+            req =>
+                req.Query(q => q.MultiMatch(
+                    match =>
+                    {
+                        match.Fields(fieldsList);
+                        match.Query(query);
+                        match.Operator(Operator.And);
+                    })), 
+            cancellationToken);
+        
+        if (response is not null && response.IsSuccess())
+        {
+            _logger.LogInformation(
+                "Get all documents of {AuthorName}. Received {DocumentsCount} documents",
+                query,
+                response.Documents.Count);
+            return response.Hits.Select(x =>
+                    new BookResponse
+                    {
+                        Id = x.Id,
+                        Score = x.Score!.Value,
+                        Book = x.Source!
+                    })
+                .ToArray();
+        }
+        
+        // It must never be executed, because IndexAsync throw exception if something goes wrong
+        throw new InvalidOperationException("Something was wrong.");
+    }
+
     public async Task<string> Save(Book book, CancellationToken cancellationToken = default)
     {
         var response = await _client.IndexAsync(
@@ -375,23 +445,26 @@ public class ElasticRepository : IElasticRepository
         {
             return bulkAsync.Items.Select(x => x.Id).ToArray()!;
         }
-        
-        var bulk = _client.BulkAll(
-            books,
-            conf =>
-            {
-                conf.Size(5);
-                conf.MaxDegreeOfParallelism(10);
-            },
-            cancellationToken);
-        
-        var ids = new List<string>();
-        
-        bulk.Wait(TimeSpan.FromMinutes(30), response =>
-        {
-            ids.AddRange(response.Items.Select(x => x.Id)!);
-        });
 
-        return ids.ToArray();
+        // It must never be executed, because IndexAsync throw exception if something goes wrong
+        throw new InvalidOperationException("Something was wrong.");
+        
+        // var bulk = _client.BulkAll(
+        //     books,
+        //     conf =>
+        //     {
+        //         conf.Size(5);
+        //         conf.MaxDegreeOfParallelism(10);
+        //     },
+        //     cancellationToken);
+        
+        // var ids = new List<string>();
+        
+        // bulk.Wait(TimeSpan.FromMinutes(30), response =>
+        // {
+        //     ids.AddRange(response.Items.Select(x => x.Id)!);
+        // });
+
+        // return ids.ToArray();
     }
 }

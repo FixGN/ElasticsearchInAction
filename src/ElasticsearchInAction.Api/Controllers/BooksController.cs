@@ -96,23 +96,21 @@ public class BooksController : ControllerBase
         [FromQuery] string query,
         CancellationToken cancellationToken)
     {
-        var result = await repository.Search(
+        var response = await repository.SearchInFields(
             new[] { "title^2", "author^3", "synopsis" },
             query,
             cancellationToken);
 
-        return new GetAllResponse
-        {
-            IsSuccess = true,
-            Books = result.Select(x => 
-                new Book
-                {
-                    Id = x.Id,
-                    Score = x.Score,
-                    Data = BookData.FromDto(x.Book)
-                })
-                .ToArray()
-        };
+        return GetAllResponse.SuccessResponse(
+            response
+                .Select(x => 
+                    new Book
+                    {
+                        Id = x.Id,
+                        Score = x.Score,
+                        Data = BookData.FromDto(x.Book)
+                    })
+                .ToArray());
     }
     
     [HttpGet("search/author")]
@@ -134,17 +132,16 @@ public class BooksController : ControllerBase
         }
 
 
-        return new GetAllResponse
-        {
-            IsSuccess = true,
-            Books = response.Select(x =>
-                new Book
-                {
-                    Id = x.Id,
-                    Score = x.Score,
-                    Data = BookData.FromDto(x.Book)
-                }).ToArray()
-        };
+        return GetAllResponse.SuccessResponse(
+            response
+                .Select(x => 
+                    new Book
+                    {
+                        Id = x.Id,
+                        Score = x.Score,
+                        Data = BookData.FromDto(x.Book)
+                    })
+                .ToArray());
     }
 
     [HttpGet("search/author/best")]
@@ -171,34 +168,61 @@ public class BooksController : ControllerBase
             DateOnly.FromDateTime(oldestDate),
             cancellationToken);
 
-        return new GetAllResponse
+        return GetAllResponse.SuccessResponse(
+            response
+                .Select(x => 
+                    new Book
+                    {
+                        Id = x.Id,
+                        Score = x.Score,
+                        Data = BookData.FromDto(x.Book)
+                    })
+                .ToArray());
+    }
+
+    [HttpGet("search/amazonrating")]
+    public async Task<IActionResult> SearchByAmazonRating(
+        [FromServices] IElasticRepository repository,
+        [FromQuery] double? minRating,
+        [FromQuery] double? maxRating,
+        CancellationToken cancellationToken)
+    {
+        if (minRating == null && maxRating == null)
         {
-            IsSuccess = true,
-            Books = response.Select(x =>
-                new Book
-                {
-                    Id = x.Id,
-                    Score = x.Score,
-                    Data = BookData.FromDto(x.Book)
-                }).ToArray()
-        };
+            return BadRequest(GetAllResponse.ErrorResponse("minRating or maxRating must be set!"));
+        }
+
+        var response = await repository.Search(
+            minRating,
+            maxRating,
+            cancellationToken);
+
+        return Ok(GetAllResponse.SuccessResponse(
+            response
+                .Select(x => 
+                    new Book
+                    {
+                        Id = x.Id,
+                        Score = x.Score,
+                        Data = BookData.FromDto(x.Book)
+                    })
+                .ToArray()));
     }
     
     private async Task<GetAllResponse> GetAllInternal(IElasticRepository repository, CancellationToken cancellationToken)
     {
         var response = await repository.GetAll(cancellationToken);
 
-        return new GetAllResponse
-        {
-            IsSuccess = true,
-            Books = response.Select(x => 
-                new Book
-                {
-                    Id = x.Id,
-                    Score = x.Score,
-                    Data = BookData.FromDto(x.Book)
-                }).ToArray()
-        };
+        return GetAllResponse.SuccessResponse(
+            response
+                .Select(x => 
+                    new Book
+                    {
+                        Id = x.Id,
+                        Score = x.Score,
+                        Data = BookData.FromDto(x.Book)
+                    })
+                .ToArray());
     }
 
     private async Task<GetAllResponse> GetAllByIdsInternal(
@@ -208,16 +232,15 @@ public class BooksController : ControllerBase
     {
         var response = await repository.Get(ids, cancellationToken);
         
-        return new GetAllResponse
-        {
-            IsSuccess = true,
-            Books = response.Select(x =>
-                new Book
-                {
-                    Id = x.Id,
-                    Score = x.Score,
-                    Data = BookData.FromDto(x.Book)
-                }).ToArray()
-        };
+        return GetAllResponse.SuccessResponse(
+            response
+                .Select(x => 
+                    new Book
+                    {
+                        Id = x.Id,
+                        Score = x.Score,
+                        Data = BookData.FromDto(x.Book)
+                    })
+                .ToArray());
     }
 }
